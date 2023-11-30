@@ -4,9 +4,9 @@ export type Throttle<T extends unknown[], S> = {
 }
 export type Resolve<S> = (value: S | PromiseLike<S>) => void;
 
-export type ThrottleCallback = <T extends unknown[], S>(args: T[], promises: Resolve<S>[]) => void;
+export type ThrottleCallback<T extends unknown[], S> = (args: T[], promises: Resolve<S>[]) => void;
 
-function createThrottle<T extends unknown[], S>(callback: ThrottleCallback, delay: number): Throttle<T, S> {
+function createThrottle<T extends unknown[], S>(callback: ThrottleCallback<T, S>, delay: number): Throttle<T, S> {
     const ArgumentStack: T[] = [];
     const PromiseStack: Resolve<S>[] = [];
     let promise: Promise<any> | null = null;
