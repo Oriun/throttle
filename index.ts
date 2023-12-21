@@ -1,6 +1,7 @@
 export type Throttle<T extends unknown[], S> = {
     (...args: T): Promise<S>;
     flush(): void;
+    force(): void;
 }
 export type Resolve<S> = (value: S | PromiseLike<S>) => void;
 
@@ -11,6 +12,14 @@ function createThrottle<T extends unknown[], S>(callback: ThrottleCallback<T, S>
     const PromiseStack: Resolve<S>[] = [];
     let promise: Promise<any> | null = null;
     let timeout: NodeJS.Timeout | null = null;
+
+    function forceCall() {
+      callback(
+        ArgumentStack.splice(0, ArgumentStack.length),
+        PromiseStack.splice(0, PromiseStack.length)
+      );
+      promise = null;
+    }
     function throttle(...args: T) {
       return new Promise<S>((resolve) => {
         ArgumentStack.push(args);
@@ -18,12 +27,8 @@ function createThrottle<T extends unknown[], S>(callback: ThrottleCallback<T, S>
         if (!promise) {
           promise = new Promise<void>((resolve2) => {
             timeout = setTimeout(() => {
-              callback(
-                ArgumentStack.splice(0, ArgumentStack.length),
-                PromiseStack.splice(0, PromiseStack.length)
-              );
-              promise = null;
-              resolve2();
+              forceCall()
+              resolve2()
             }, delay);
           });
           return promise;
@@ -31,11 +36,12 @@ function createThrottle<T extends unknown[], S>(callback: ThrottleCallback<T, S>
         return promise;
       });
     };
+    throttle.force = forceCall;
     throttle.flush = () => {
         clearTimeout(timeout!);
-        promise = null;
         ArgumentStack.splice(0, ArgumentStack.length);
         PromiseStack.splice(0, PromiseStack.length);
+        promise = null;
     }
     return throttle;
   };
